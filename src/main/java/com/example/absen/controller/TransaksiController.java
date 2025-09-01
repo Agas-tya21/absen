@@ -1,6 +1,5 @@
 package com.example.absen.controller;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,6 +21,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import com.example.absen.model.Transaksi;
 import com.example.absen.service.FileStorageService;
 import com.example.absen.service.TransaksiService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/api/transaksis")
@@ -33,26 +33,29 @@ public class TransaksiController {
     @Autowired
     private FileStorageService fileStorageService;
 
-    // Create a new transaction with optional photo (POST)
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @PostMapping(consumes = {"multipart/form-data"})
     public ResponseEntity<Transaksi> createTransaksi(
-            @RequestPart("transaksi") Transaksi transaksi,
+            @RequestPart("transaksi") String transaksiJson,
             @RequestPart(value = "fotobukti", required = false) MultipartFile fotobuktiFile) {
         try {
-            if (fotobuktiFile != null && !fotobuktiFile.isEmpty()) {
-                String fileName = fileStorageService.storeFile(fotobuktiFile);
-                transaksi.setFotobukti(fileName); // Simpan hanya nama file
-            }
-
-            Transaksi newTransaksi = transaksiService.createTransaksi(transaksi);
-            buildFotoUrl(newTransaksi); // Bangun URL untuk respons
+            Transaksi transaksi = objectMapper.readValue(transaksiJson, Transaksi.class);
+            Transaksi newTransaksi = transaksiService.createTransaksi(transaksi, fotobuktiFile);
+            buildFotoUrl(newTransaksi);
             return new ResponseEntity<>(newTransaksi, HttpStatus.CREATED);
+        } catch (RuntimeException e) {
+            System.err.println("Error creating transaction: " + e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
+            System.err.println("Error creating transaction: " + e.getMessage());
+            e.printStackTrace();
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    // Get all transaksis (READ)
     @GetMapping
     public ResponseEntity<List<Transaksi>> getAllTransaksis() {
         try {
@@ -67,7 +70,6 @@ public class TransaksiController {
         }
     }
 
-    // Get transaksi by id (READ)
     @GetMapping("/{id}")
     public ResponseEntity<Transaksi> getTransaksiById(@PathVariable("id") String id) {
         Optional<Transaksi> transaksiData = transaksiService.getTransaksiById(id);
@@ -80,55 +82,33 @@ public class TransaksiController {
         }
     }
 
-    // Update a transaksi by id (UPDATE)
     @PutMapping("/{id}")
     public ResponseEntity<Transaksi> updateTransaksi(@PathVariable("id") String id, @RequestBody Transaksi transaksi) {
-        Transaksi updatedTransaksi = transaksiService.updateTransaksi(id, transaksi);
-        if (updatedTransaksi != null) {
-            buildFotoUrl(updatedTransaksi);
-            return new ResponseEntity<>(updatedTransaksi, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        try {
+            Transaksi updatedTransaksi = transaksiService.updateTransaksi(id, transaksi);
+            if (updatedTransaksi != null) {
+                buildFotoUrl(updatedTransaksi);
+                return new ResponseEntity<>(updatedTransaksi, HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (RuntimeException e) {
+            System.err.println("Error updating transaction: " + e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            System.err.println("Error updating transaction: " + e.getMessage());
+            e.printStackTrace();
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    // Delete a transaksi by id (DELETE)
     @DeleteMapping("/{id}")
     public ResponseEntity<HttpStatus> deleteTransaksi(@PathVariable("id") String id) {
         try {
             transaksiService.deleteTransaksi(id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    // New Endpoint: Update a transaction's photo by id
-    @PutMapping(value = "/{idtransaksi}/upload-bukti", consumes = {"multipart/form-data"})
-    public ResponseEntity<Transaksi> uploadFotoBukti(
-            @PathVariable("idtransaksi") String idtransaksi,
-            @RequestPart(value = "fotobukti", required = false) MultipartFile fotobuktiFile) {
-        try {
-            Optional<Transaksi> existingTransaksiOptional = transaksiService.getTransaksiById(idtransaksi);
-            if (!existingTransaksiOptional.isPresent()) {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-
-            Transaksi existingTransaksi = existingTransaksiOptional.get();
-
-            if (fotobuktiFile != null && !fotobuktiFile.isEmpty()) {
-                String fileName = fileStorageService.storeFile(fotobuktiFile);
-                existingTransaksi.setFotobukti(fileName); // Simpan hanya nama file
-            }
-
-            Transaksi updatedTransaksi = transaksiService.updateTransaksi(idtransaksi, existingTransaksi);
-            if (updatedTransaksi != null) {
-                buildFotoUrl(updatedTransaksi);
-                return new ResponseEntity<>(updatedTransaksi, HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-        } catch (IOException e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

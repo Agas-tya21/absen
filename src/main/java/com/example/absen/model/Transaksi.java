@@ -1,16 +1,15 @@
 package com.example.absen.model;
 
-import java.util.Date;
-
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.Column;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import java.util.Date;
 
 @Data
 @NoArgsConstructor
@@ -36,6 +35,9 @@ public class Transaksi {
 
     @Column(name = "waktutransaksi")
     private Date waktutransaksi;
+
+    @Column(name = "koordinat")
+    private String koordinat;
 
     @ManyToOne
     @JoinColumn(name = "idstatus", referencedColumnName = "idstatus")
