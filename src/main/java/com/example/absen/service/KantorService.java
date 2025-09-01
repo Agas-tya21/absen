@@ -16,6 +16,12 @@ public class KantorService {
     private KantorRepository kantorRepository;
 
     public Kantor createKantor(Kantor kantor) {
+        // Cek jika ID Kantor tidak ada, maka buat secara otomatis
+        if (kantor.getIdkantor() == null || kantor.getIdkantor().isEmpty()) {
+            long count = kantorRepository.count();
+            String newId = String.format("k%03d", count + 1);
+            kantor.setIdkantor(newId);
+        }
         return kantorRepository.save(kantor);
     }
 
