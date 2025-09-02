@@ -54,7 +54,12 @@ public class UserService {
         if (userData.isPresent()) {
             User updatedUser = userData.get();
             updatedUser.setEmail(userDetails.getEmail());
-            updatedUser.setPassword(userDetails.getPassword());
+            
+            // Perbaikan: Hanya perbarui password jika tidak kosong
+            if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
+                updatedUser.setPassword(userDetails.getPassword());
+            }
+
             updatedUser.setNama(userDetails.getNama());
             updatedUser.setTanggallahir(userDetails.getTanggallahir());
             updatedUser.setNohp(userDetails.getNohp());
